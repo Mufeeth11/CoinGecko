@@ -1,3 +1,7 @@
+# Node backend
+node_modules/
+.env
+
 # Miscellaneous
 *.class
 *.log
