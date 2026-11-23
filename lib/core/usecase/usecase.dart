@@ -1,4 +1,6 @@
-abstract interface class UseCase<Result, Params> {
+abstract class UseCase<Result, Params> {
+  const UseCase();
+
   Future<Result> call(Params params);
 }
 
