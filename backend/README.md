@@ -1,6 +1,6 @@
 # CoinScope Backend
 
-Dependency-free Node.js HTTP API used by the Flutter app. It proxies and normalizes CoinGecko v3 responses, caches them briefly, and falls back to deterministic mock data when the upstream API is unavailable or rate-limited.
+Dependency-free Node.js HTTP API used by the Flutter app. It proxies and normalizes live CoinGecko v3 responses and caches them briefly. There is no offline or fallback dataset: when the upstream API is unavailable, the API returns an error and the client shows its error state.
 
 ## Requirements
 
@@ -12,29 +12,9 @@ Dependency-free Node.js HTTP API used by the Flutter app. It proxies and normali
 npm start
 ```
 
-`npm start` uses `auto` mode: CoinGecko is tried first, so the app receives live data whenever the upstream API is reachable. Mock data is only a fallback for offline/rate-limited cases.
+The server only serves live upstream data. Upstream failures return `502`, and the Flutter app shows the matching error state instead of displaying cached or sample values.
 
-Guaranteed live mode on PowerShell:
-
-```powershell
-$env:DATA_MODE='live'; npm start
-```
-
-Deterministic offline demo:
-
-```powershell
-$env:DATA_MODE='mock'; npm start
-```
-
-The server logs its listening URL and active mode, and each response includes `X-Data-Source: live|mock`.
-
-## Modes
-
-| `DATA_MODE` | Behavior |
-| --- | --- |
-| `auto` (default) | Try CoinGecko, fall back to mock on any failure |
-| `mock` | Always serve deterministic sample data; no network calls upstream |
-| `live` | Serve upstream data only; return `502` if upstream fails |
+The server logs its listening URL and source, and each response includes `X-Data-Source: live`.
 
 ## Environment variables
 
@@ -44,12 +24,11 @@ The server logs its listening URL and active mode, and each response includes `X
 | `COINGECKO_BASE_URL` | `https://api.coingecko.com/api/v3` | Upstream base URL |
 | `COINGECKO_API_KEY` | empty | Sent as `x-cg-demo-api-key` when set |
 | `CACHE_TTL_MS` | `60000` | Live cache lifetime |
-| `FALLBACK_TTL_MS` | `60000` | Mock cache lifetime |
 | `UPSTREAM_TIMEOUT_MS` | `4000` | Abort timeout for upstream calls |
 
 ## API
 
-All paths are under `/api`. Responses are JSON with `Access-Control-Allow-Origin: *` and an `X-Data-Source: live|mock` header.
+All paths are under `/api`. Responses are JSON with `Access-Control-Allow-Origin: *` and an `X-Data-Source: live` header.
 
 | Path | Query | Response |
 | --- | --- | --- |
@@ -60,7 +39,7 @@ All paths are under `/api`. Responses are JSON with `Access-Control-Allow-Origin
 | `/coins/:id/market_chart` | `days` (default `7`) | `{ prices, marketCaps, totalVolumes, id, days, source }` |
 | `/global` | — | Global stats object + `source` |
 
-Unknown paths return `404`; non-GET methods return `405`. Upstream failures in `live` mode return `502`.
+Unknown paths return `404`; non-GET methods return `405`. Upstream failures return `502`.
 
 Normalized coin fields include `id`, `symbol`, `name`, `image`, `category`, `currentPrice`, `marketCap`, `marketCapRank`, `totalVolume`, `circulatingSupply`, optional `totalSupply`/`maxSupply`, and percentage changes.
 
@@ -71,4 +50,4 @@ npm test
 npm run smoke
 ```
 
-`npm test` covers normalization and route behavior with `node:test`. `npm run smoke` spins up the real server on an ephemeral port and checks the complete HTTP contract end-to-end.
+`npm test` covers normalization and route behavior with `node:test`. `npm run smoke` starts the real server against a deterministic local upstream stub on an ephemeral port and checks the complete HTTP contract end-to-end. The stub lives in `test/fixtures/upstream.js` and is used only by tests.

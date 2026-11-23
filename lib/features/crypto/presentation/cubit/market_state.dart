@@ -13,7 +13,7 @@ class MarketState extends Equatable {
     this.category,
     this.sort = MarketSort.marketCap,
     this.descending = true,
-    this.source = 'mock',
+    this.source = '',
     this.updatedAt,
     this.message,
     this.isRefreshing = false,

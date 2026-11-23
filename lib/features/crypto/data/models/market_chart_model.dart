@@ -15,7 +15,7 @@ class MarketChartModel extends MarketChart {
     return MarketChartModel(
       coinId: json.stringAt('id'),
       days: json.stringAt('days', '7'),
-      source: json.stringAt('source', 'mock'),
+      source: json.stringAt('source'),
       prices: _parsePoints(json['prices']),
       marketCaps: _parsePoints(json['marketCaps']),
       totalVolumes: _parsePoints(json['totalVolumes']),

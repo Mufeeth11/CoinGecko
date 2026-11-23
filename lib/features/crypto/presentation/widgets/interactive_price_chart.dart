@@ -48,19 +48,30 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              Formatters.currency(activePoint?.value),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppColors.text,
+            Flexible(
+              child: Text(
+                Formatters.currency(activePoint?.value),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.mono(
+                  size: 19,
+                  weight: FontWeight.w700,
+                  color: AppColors.text,
+                ),
               ),
             ),
-            if (activePoint != null)
-              Text(
-                Formatters.dateTime(activePoint.time),
-                style: const TextStyle(fontSize: 11, color: AppColors.faint),
+            if (activePoint != null) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  Formatters.dateTime(activePoint.time),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: AppText.mono(size: 9.5, color: AppColors.faint),
+                ),
               ),
+            ],
           ],
         ),
         const SizedBox(height: 8),
@@ -74,9 +85,9 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
                 show: true,
                 drawVerticalLine: false,
                 getDrawingHorizontalLine: (value) => FlLine(
-                  color: AppColors.border.withValues(alpha: 0.55),
+                  color: AppColors.border.withValues(alpha: 0.45),
                   strokeWidth: 1,
-                  dashArray: [4, 4],
+                  dashArray: [3, 5],
                 ),
               ),
               borderData: FlBorderData(show: false),
@@ -96,10 +107,7 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
                       if (value == meta.min || value == meta.max) {
                         return Text(
                           Formatters.compactCurrency(value),
-                          style: const TextStyle(
-                            color: AppColors.faint,
-                            fontSize: 9,
-                          ),
+                          style: AppText.mono(size: 8.5, color: AppColors.faint),
                         );
                       }
                       return const SizedBox.shrink();
@@ -120,10 +128,7 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           Formatters.shortDate(points[index].time),
-                          style: const TextStyle(
-                            color: AppColors.faint,
-                            fontSize: 9,
-                          ),
+                          style: AppText.mono(size: 8.5, color: AppColors.faint),
                         ),
                       );
                     },
@@ -134,10 +139,10 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
                 LineChartBarData(
                   spots: spots,
                   isCurved: true,
-                  curveSmoothness: 0.25,
+                  curveSmoothness: 0.18,
                   preventCurveOverShooting: true,
                   color: color,
-                  barWidth: 2.5,
+                  barWidth: 1.8,
                   dotData: const FlDotData(show: false),
                   belowBarData: BarAreaData(
                     show: true,
@@ -145,7 +150,7 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        color.withValues(alpha: 0.24),
+                        color.withValues(alpha: 0.18),
                         color.withValues(alpha: 0),
                       ],
                     ),
@@ -170,16 +175,21 @@ class _InteractivePriceChartState extends State<InteractivePriceChart> {
                 touchTooltipData: LineTouchTooltipData(
                   fitInsideHorizontally: true,
                   fitInsideVertically: true,
+                  tooltipBorderRadius: BorderRadius.circular(3),
+                  tooltipPadding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
+                  ),
                   getTooltipColor: (_) => AppColors.surfaceElevated,
                   getTooltipItems: (touchedSpots) {
                     return touchedSpots.map((spot) {
                       final index = spot.x.round().clamp(0, points.length - 1);
                       return LineTooltipItem(
                         '${Formatters.currency(spot.y)}\n${Formatters.shortDate(points[index].time)}',
-                        const TextStyle(
+                        AppText.mono(
+                          size: 10,
+                          weight: FontWeight.w600,
                           color: AppColors.text,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
                         ),
                       );
                     }).toList();

@@ -6,28 +6,39 @@ class CoinTileSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        child: Row(
-          children: [
-            _box(24, 10),
-            const SizedBox(width: 12),
-            _box(36, 36, circle: true),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _box(90, 10),
-                  const SizedBox(height: 8),
-                  _box(60, 8),
-                ],
-              ),
-            ),
-            _box(68, 10),
-          ],
+    return Container(
+      padding: const EdgeInsets.fromLTRB(4, 15, 4, 15),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.6)),
         ),
+      ),
+      child: Row(
+        children: [
+          _box(18, 8),
+          const SizedBox(width: 12),
+          _box(34, 34, circle: true),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _box(96, 9),
+                const SizedBox(height: 8),
+                _box(58, 7),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _box(60, 9),
+              const SizedBox(height: 8),
+              _box(38, 7),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -37,8 +48,8 @@ class CoinTileSkeleton extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(circle ? 100 : 5),
+        color: AppColors.surfaceSoft.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(circle ? 100 : 2),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:coingecko_mini/core/di/app_dependencies.dart';
 import 'package:coingecko_mini/core/state/view_status.dart';
 import 'package:coingecko_mini/core/theme/app_theme.dart';
 import 'package:coingecko_mini/core/utils/formatters.dart';
+import 'package:coingecko_mini/core/widgets/app_widgets.dart';
 import 'package:coingecko_mini/core/widgets/state_widgets.dart';
 import 'package:coingecko_mini/features/crypto/domain/entities/coin.dart';
 import 'package:coingecko_mini/features/crypto/presentation/cubit/market_cubit.dart';
@@ -63,17 +64,13 @@ class _MarketScreenState extends State<MarketScreen> {
                 const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
                     child: Column(
                       children: [
                         CoinTileSkeleton(),
-                        SizedBox(height: 10),
                         CoinTileSkeleton(),
-                        SizedBox(height: 10),
                         CoinTileSkeleton(),
-                        SizedBox(height: 10),
                         CoinTileSkeleton(),
-                        SizedBox(height: 10),
                         CoinTileSkeleton(),
                       ],
                     ),
@@ -104,31 +101,29 @@ class _MarketScreenState extends State<MarketScreen> {
                     actionLabel: 'Clear filters',
                   ),
                 )
-              else
+              else ...[
+                SliverToBoxAdapter(child: _ledgerHeader(state)),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                   sliver: SliverList.builder(
                     itemCount: state.visibleCoins.length,
                     itemBuilder: (context, index) {
                       final coin = state.visibleCoins[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: BlocBuilder<WatchlistCubit, WatchlistState>(
-                          builder: (context, watchlist) {
-                            return CoinTile(
-                              coin: coin,
-                              isWatched: watchlist.isWatched(coin.id),
-                              onTap: () => _openCoin(context, coin),
-                              onToggleWatch: () => context
-                                  .read<WatchlistCubit>()
-                                  .toggle(coin.id),
-                            );
-                          },
-                        ),
+                      return BlocBuilder<WatchlistCubit, WatchlistState>(
+                        builder: (context, watchlist) {
+                          return CoinTile(
+                            coin: coin,
+                            isWatched: watchlist.isWatched(coin.id),
+                            onTap: () => _openCoin(context, coin),
+                            onToggleWatch: () =>
+                                context.read<WatchlistCubit>().toggle(coin.id),
+                          );
+                        },
                       );
                     },
                   ),
                 ),
+              ],
             ],
           ),
         );
@@ -137,57 +132,35 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Widget _header(MarketState state) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Markets',
-                  style: Theme.of(context).textTheme.headlineSmall
-                      ?.copyWith(fontSize: 28),
-                ),
-              ),
-              SourceBadge(source: state.source),
-            ],
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'Live prices, volume and market cap at a glance',
-            style: TextStyle(color: AppColors.muted, fontSize: 12.5),
-          ),
-          if (state.updatedAt != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Updated ${Formatters.dateTime(state.updatedAt)}',
-              style: const TextStyle(color: AppColors.faint, fontSize: 10.5),
-            ),
-          ],
-        ],
-      ),
+    return PageHeader(
+      eyebrow: 'CoinScope / Market terminal',
+      title: 'Markets',
+      subtitle: 'Spot prices, volume and market cap from a single feed.',
+      meta: state.updatedAt == null
+          ? null
+          : 'UPDATED ${Formatters.dateTime(state.updatedAt).toUpperCase()}',
+      trailing: SourceBadge(source: state.source),
     );
   }
 
   Widget _controls(MarketState state) {
     final cubit = context.read<MarketCubit>();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Column(
         children: [
           TextField(
             controller: _searchController,
             onChanged: cubit.setQuery,
             textInputAction: TextInputAction.search,
+            style: AppText.sans(size: 13, color: AppColors.text),
             decoration: InputDecoration(
-              hintText: 'Search coins by name or symbol',
-              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+              hintText: 'Search by name or ticker',
+              prefixIcon: const Icon(Icons.search_rounded, size: 18),
               suffixIcon: state.query.isEmpty
                   ? null
                   : IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: const Icon(Icons.close_rounded, size: 16),
                       onPressed: () {
                         _searchController.clear();
                         cubit.setQuery('');
@@ -195,7 +168,7 @@ class _MarketScreenState extends State<MarketScreen> {
                     ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -203,35 +176,36 @@ class _MarketScreenState extends State<MarketScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _filterChip(
+                      _filterTab(
                         label: MarketQuickFilter.all.label,
                         selected:
                             state.quickFilter == MarketQuickFilter.all &&
                             state.category == null,
-                        onSelected: (_) {
+                        onTap: () {
                           cubit.setQuickFilter(MarketQuickFilter.all);
                           cubit.setCategory(null);
                         },
                       ),
-                      _filterChip(
+                      _filterTab(
                         label: MarketQuickFilter.gainers.label,
                         selected:
                             state.quickFilter == MarketQuickFilter.gainers,
-                        onSelected: (_) =>
+                        onTap: () =>
                             cubit.setQuickFilter(MarketQuickFilter.gainers),
                       ),
-                      _filterChip(
+                      _filterTab(
                         label: MarketQuickFilter.losers.label,
                         selected: state.quickFilter == MarketQuickFilter.losers,
-                        onSelected: (_) =>
+                        onTap: () =>
                             cubit.setQuickFilter(MarketQuickFilter.losers),
                       ),
                       for (final category in state.availableCategories)
-                        _filterChip(
+                        _filterTab(
                           label: category,
                           selected: state.category == category,
-                          onSelected: (selected) =>
-                              cubit.setCategory(selected ? category : null),
+                          onTap: () => cubit.setCategory(
+                            state.category == category ? null : category,
+                          ),
                         ),
                     ],
                   ),
@@ -246,17 +220,44 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _filterChip({
+  Widget _filterTab({
     required String label,
     required bool selected,
-    required ValueChanged<bool> onSelected,
+    required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: onSelected,
+      padding: const EdgeInsets.only(right: 16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(3),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: AppText.mono(
+                  size: 10,
+                  weight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? AppColors.text : AppColors.faint,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const SizedBox(height: 5),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOut,
+                width: selected ? 18 : 0,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -264,15 +265,15 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget _sortButton(MarketState state) {
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(4),
       child: InkWell(
         onTap: () => _showSortSheet(state),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         child: Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 9),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
@@ -280,29 +281,46 @@ class _MarketScreenState extends State<MarketScreen> {
             children: [
               const Icon(
                 Icons.swap_vert_rounded,
-                size: 16,
+                size: 14,
                 color: AppColors.primary,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 5),
               Text(
-                state.sort.label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                state.sort.label.toUpperCase(),
+                style: AppText.mono(
+                  size: 9.5,
+                  weight: FontWeight.w700,
                   color: AppColors.text,
+                  letterSpacing: 0.3,
                 ),
               ),
-              Text(
-                state.descending ? ' ↓' : ' ↑',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
+              const SizedBox(width: 4),
+              Icon(
+                state.descending
+                    ? Icons.south_rounded
+                    : Icons.north_rounded,
+                size: 12,
+                color: AppColors.primary,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _ledgerHeader(MarketState state) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+      child: Row(
+        children: [
+          const SectionLabel(label: 'Market ledger'),
+          const Spacer(),
+          Text(
+            '${state.visibleCoins.length} ASSETS',
+            style: AppText.eyebrow(AppColors.faint),
+          ),
+        ],
       ),
     );
   }
@@ -314,24 +332,35 @@ class _MarketScreenState extends State<MarketScreen> {
         final cubit = sheetContext.read<MarketCubit>();
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Sort by',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'SORT BY',
+                            style: AppText.eyebrow(AppColors.faint),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Order the ledger',
+                            style: AppText.display(size: 21, spacing: -0.5),
+                          ),
+                        ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.unfold_more_rounded,
+                      icon: Icon(
+                        state.descending
+                            ? Icons.south_rounded
+                            : Icons.north_rounded,
                         color: AppColors.primary,
                       ),
                       tooltip: state.descending ? 'Descending' : 'Ascending',
@@ -339,7 +368,8 @@ class _MarketScreenState extends State<MarketScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                const Divider(),
                 RadioGroup<MarketSort>(
                   groupValue: state.sort,
                   onChanged: (value) {
@@ -350,11 +380,9 @@ class _MarketScreenState extends State<MarketScreen> {
                     children: [
                       for (final option in MarketSort.values)
                         ListTile(
+                          dense: true,
                           title: Text(option.label),
-                          leading: Radio<MarketSort>(
-                            value: option,
-                            activeColor: AppColors.primary,
-                          ),
+                          trailing: Radio<MarketSort>(value: option),
                         ),
                     ],
                   ),
@@ -369,29 +397,40 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Widget _errorBanner(String message) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Panel(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.negative.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.negative.withValues(alpha: 0.25)),
-        ),
+        borderColor: AppColors.negative.withValues(alpha: 0.3),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.info_outline_rounded,
-              size: 17,
-              color: AppColors.negative,
+            const Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 15,
+                color: AppColors.negative,
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 9),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: AppColors.negative,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FEED WARNING',
+                    style: AppText.eyebrow(AppColors.negative),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    message,
+                    style: AppText.sans(
+                      size: 11.5,
+                      color: AppColors.muted,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

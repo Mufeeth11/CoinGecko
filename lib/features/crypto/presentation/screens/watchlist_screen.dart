@@ -1,6 +1,7 @@
 import 'package:coingecko_mini/core/di/app_dependencies.dart';
 import 'package:coingecko_mini/core/state/view_status.dart';
 import 'package:coingecko_mini/core/theme/app_theme.dart';
+import 'package:coingecko_mini/core/widgets/app_widgets.dart';
 import 'package:coingecko_mini/core/widgets/state_widgets.dart';
 import 'package:coingecko_mini/features/crypto/domain/entities/coin.dart';
 import 'package:coingecko_mini/features/crypto/presentation/cubit/market_cubit.dart';
@@ -46,48 +47,24 @@ class WatchlistScreen extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Watchlist',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(fontSize: 28),
-                                ),
-                              ),
-                              SourceBadge(source: market.source),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            watchlist.ids.isEmpty
-                                ? 'Star coins to follow them here'
-                                : '${watchlist.ids.length} asset${watchlist.ids.length == 1 ? '' : 's'} followed',
-                            style: const TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 12.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: PageHeader(
+                      eyebrow: 'CoinScope / Personal tape',
+                      title: 'Watchlist',
+                      subtitle: watchlist.ids.isEmpty
+                          ? 'Star coins to follow them in one place.'
+                          : '${watchlist.ids.length} asset${watchlist.ids.length == 1 ? '' : 's'} followed, sorted with the market.',
+                      trailing: SourceBadge(source: market.source),
                     ),
                   ),
                   if (watchlist.message != null)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Text(
                           watchlist.message!,
-                          style: const TextStyle(
+                          style: AppText.sans(
+                            size: 11.5,
                             color: AppColors.negative,
-                            fontSize: 11.5,
                           ),
                         ),
                       ),
@@ -96,13 +73,11 @@ class WatchlistScreen extends StatelessWidget {
                     const SliverFillRemaining(
                       hasScrollBody: false,
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
                         child: Column(
                           children: [
                             CoinTileSkeleton(),
-                            SizedBox(height: 10),
                             CoinTileSkeleton(),
-                            SizedBox(height: 10),
                             CoinTileSkeleton(),
                           ],
                         ),
@@ -121,7 +96,8 @@ class WatchlistScreen extends StatelessWidget {
                       hasScrollBody: false,
                       child: EmptyView(
                         title: 'Your watchlist is empty',
-                        message: 'Add coins with the star icon to track their prices in one place.',
+                        message:
+                            'Add coins with the star icon to track their prices in one place.',
                         icon: Icons.star_border_rounded,
                         actionLabel: 'Explore markets',
                         onAction: onExploreMarkets,
@@ -132,31 +108,44 @@ class WatchlistScreen extends StatelessWidget {
                       hasScrollBody: false,
                       child: EmptyView(
                         title: 'Watched coins unavailable',
-                        message: 'Refresh market data or remove these assets from your watchlist.',
+                        message:
+                            'Refresh market data or remove these assets from your watchlist.',
                         icon: Icons.cloud_off_rounded,
                       ),
                     )
-                  else
+                  else ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                        child: Row(
+                          children: [
+                            const SectionLabel(label: 'Tracked assets'),
+                            const Spacer(),
+                            Text(
+                              '${watchedCoins.length}',
+                              style: AppText.eyebrow(AppColors.faint),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                       sliver: SliverList.builder(
                         itemCount: watchedCoins.length,
                         itemBuilder: (context, index) {
                           final coin = watchedCoins[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: CoinTile(
-                              coin: coin,
-                              isWatched: true,
-                              onTap: () => _openCoin(context, coin),
-                              onToggleWatch: () => context
-                                  .read<WatchlistCubit>()
-                                  .toggle(coin.id),
-                            ),
+                          return CoinTile(
+                            coin: coin,
+                            isWatched: true,
+                            onTap: () => _openCoin(context, coin),
+                            onToggleWatch: () =>
+                                context.read<WatchlistCubit>().toggle(coin.id),
                           );
                         },
                       ),
                     ),
+                  ],
                 ],
               ),
             );

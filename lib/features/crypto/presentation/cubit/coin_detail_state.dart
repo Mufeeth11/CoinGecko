@@ -10,7 +10,7 @@ class CoinDetailState extends Equatable {
     this.detail,
     this.chart,
     this.days = '7',
-    this.source = 'mock',
+    this.source = '',
     this.message,
     this.chartMessage,
     this.isRefreshing = false,

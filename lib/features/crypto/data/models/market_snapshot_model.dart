@@ -22,7 +22,7 @@ class MarketSnapshotModel extends MarketSnapshot {
 
     return MarketSnapshotModel(
       coins: coins,
-      source: json.stringAt('source', 'mock'),
+      source: json.stringAt('source'),
       updatedAt:
           DateTime.tryParse(json.stringAt('updatedAt')) ?? DateTime.now(),
     );

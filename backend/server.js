@@ -1,22 +1,13 @@
 'use strict';
 
 const http = require('node:http');
-const {
-  getMockMarkets,
-  getMockCoin,
-  getMockChart,
-  getMockGlobal,
-  getMockCategories,
-  round,
-} = require('./mock-data');
 
 const PORT = Number(process.env.PORT || 3000);
 const UPSTREAM = process.env.COINGECKO_BASE_URL || 'https://api.coingecko.com/api/v3';
 const API_KEY = process.env.COINGECKO_API_KEY || '';
-const MODE = (process.env.DATA_MODE || 'auto').toLowerCase(); // auto | mock | live
 const CACHE_TTL = Number(process.env.CACHE_TTL_MS || 60_000);
-const FALLBACK_TTL = Number(process.env.FALLBACK_TTL_MS || 60_000);
 const TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 4_000);
+const SOURCE = 'live';
 
 const cache = new Map();
 
@@ -51,7 +42,7 @@ function stripHtml(value) {
     .trim();
 }
 
-function sendJson(res, status, body, source = 'api') {
+function sendJson(res, status, body, source = SOURCE) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -79,33 +70,16 @@ async function upstreamJson(path) {
   }
 }
 
-async function resolve(key, upstream, fallback) {
+async function resolve(key, upstream) {
   const cached = cache.get(key);
   if (cached && cached.expires > Date.now()) {
-    return { data: cached.data, source: cached.source };
-  }
-
-  if (MODE !== 'live') {
-    const data = fallback();
-    if (MODE !== 'mock') {
-      // In auto mode try upstream once, then fall back on any failure.
-      try {
-        const raw = await upstream();
-        const live = normalize(key, raw);
-        cache.set(key, { data: live, source: 'live', expires: Date.now() + CACHE_TTL });
-        return { data: live, source: 'live' };
-      } catch (error) {
-        console.warn(`[backend] using mock for ${key}: ${error.message}`);
-      }
-    }
-    cache.set(key, { data, source: 'mock', expires: Date.now() + FALLBACK_TTL });
-    return { data, source: 'mock' };
+    return cached.data;
   }
 
   const raw = await upstream();
-  const live = normalize(key, raw);
-  cache.set(key, { data: live, source: 'live', expires: Date.now() + CACHE_TTL });
-  return { data: live, source: 'live' };
+  const data = normalize(key, raw);
+  cache.set(key, { data, expires: Date.now() + CACHE_TTL });
+  return data;
 }
 
 function normalize(key, raw) {
@@ -130,23 +104,32 @@ function normalize(key, raw) {
     }));
   }
 
+  if (key === 'categories') {
+    const categories = (Array.isArray(raw) ? raw : [])
+      .map((item) => String(item?.name || ''))
+      .filter((name) => name.length > 0);
+    if (categories.length === 0) throw new Error('Empty categories response');
+    return categories;
+  }
+
   if (key.startsWith('coin:')) {
     const data = raw || {};
     const market = data.market_data || {};
     if (!data.id || !market.current_price) throw new Error('Incomplete coin response');
     const value = (obj, field) => num(obj?.[field]?.usd);
-    const fallback = getMockCoin(key.slice(5)) || {};
     return {
       id: String(data.id),
-      symbol: String(data.symbol || fallback.symbol || '').toUpperCase(),
-      name: String(data.name || fallback.name || ''),
-      image: String(data.image?.large || fallback.image || ''),
-      category: CATEGORY_HINTS[data.id] || fallback.category || 'Other',
-      categories: Array.isArray(data.categories) && data.categories.length ? data.categories : [CATEGORY_HINTS[data.id] || 'Cryptocurrency'],
-      description: stripHtml(data.description?.en || fallback.description),
+      symbol: String(data.symbol || '').toUpperCase(),
+      name: String(data.name || ''),
+      image: String(data.image?.large || ''),
+      category: CATEGORY_HINTS[data.id] || 'Other',
+      categories: Array.isArray(data.categories) && data.categories.length
+        ? data.categories
+        : [CATEGORY_HINTS[data.id] || 'Cryptocurrency'],
+      description: stripHtml(data.description?.en),
       currentPrice: value(market, 'current_price'),
       marketCap: value(market, 'market_cap'),
-      marketCapRank: num(market.market_cap_rank, fallback.marketCapRank || 0),
+      marketCapRank: num(market.market_cap_rank),
       totalVolume: value(market, 'total_volume'),
       circulatingSupply: num(market.circulating_supply),
       totalSupply: market.total_supply == null ? null : num(market.total_supply),
@@ -164,7 +147,6 @@ function normalize(key, raw) {
 
   if (key.startsWith('chart:')) {
     const prices = Array.isArray(raw?.prices) ? raw.prices : [];
-    if (prices.length === 0) throw new Error('Empty chart response');
     return {
       prices,
       marketCaps: Array.isArray(raw.market_caps) ? raw.market_caps : [],
@@ -205,37 +187,37 @@ async function handle(req, res) {
   }
 
   if (path === '/api/health') {
-    sendJson(res, 200, { status: 'ok', mode: MODE, timestamp: new Date().toISOString() });
+    sendJson(res, 200, { status: 'ok', mode: SOURCE, timestamp: new Date().toISOString() });
     return;
   }
 
   if (path === '/api/categories') {
-    sendJson(res, 200, { categories: getMockCategories() }, 'mock');
+    const categories = await resolve('categories', () => upstreamJson('/coins/categories'));
+    sendJson(res, 200, { categories }, SOURCE);
     return;
   }
 
   if (path === '/api/coins') {
-    const result = await resolve(
+    const coins = await resolve(
       'markets',
       () => upstreamJson('/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h,7d'),
-      getMockMarkets,
     );
-    let coins = result.data;
+    let visible = coins;
     const query = (url.searchParams.get('search') || '').trim().toLowerCase();
     const category = (url.searchParams.get('category') || '').trim().toLowerCase();
     if (query) {
-      coins = coins.filter((coin) => coin.name.toLowerCase().includes(query) || coin.symbol.toLowerCase().includes(query));
+      visible = visible.filter((coin) => coin.name.toLowerCase().includes(query) || coin.symbol.toLowerCase().includes(query));
     }
     if (category && category !== 'all') {
-      coins = coins.filter((coin) => coin.category.toLowerCase() === category);
+      visible = visible.filter((coin) => coin.category.toLowerCase() === category);
     }
-    sendJson(res, 200, { coins, source: result.source, updatedAt: new Date().toISOString() }, result.source);
+    sendJson(res, 200, { coins: visible, source: SOURCE, updatedAt: new Date().toISOString() }, SOURCE);
     return;
   }
 
   if (path === '/api/global') {
-    const result = await resolve('global', () => upstreamJson('/global'), getMockGlobal);
-    sendJson(res, 200, { ...result.data, source: result.source }, result.source);
+    const stats = await resolve('global', () => upstreamJson('/global'));
+    sendJson(res, 200, { ...stats, source: SOURCE }, SOURCE);
     return;
   }
 
@@ -244,16 +226,15 @@ async function handle(req, res) {
     const id = decodeURIComponent(chartMatch[1]);
     const days = url.searchParams.get('days') || '7';
     const key = `chart:${id}:${days}`;
-    const result = await resolve(
+    const chart = await resolve(
       key,
       () => upstreamJson(`/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${encodeURIComponent(days)}`),
-      () => getMockChart(id, days) || { prices: [], marketCaps: [], totalVolumes: [] },
     );
-    if (result.data.prices.length === 0) {
-      sendJson(res, 404, { error: `No chart data for ${id}` }, result.source);
+    if (chart.prices.length === 0) {
+      sendJson(res, 404, { error: `No chart data for ${id}` }, SOURCE);
       return;
     }
-    sendJson(res, 200, { ...result.data, id, days, source: result.source }, result.source);
+    sendJson(res, 200, { ...chart, id, days, source: SOURCE }, SOURCE);
     return;
   }
 
@@ -261,16 +242,15 @@ async function handle(req, res) {
   if (coinMatch) {
     const id = decodeURIComponent(coinMatch[1]);
     const key = `coin:${id}`;
-    const result = await resolve(
+    const coin = await resolve(
       key,
       () => upstreamJson(`/coins/${encodeURIComponent(id)}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`),
-      () => getMockCoin(id),
     );
-    if (!result.data || !result.data.id) {
-      sendJson(res, 404, { error: `Coin ${id} not found` }, result.source);
+    if (!coin || !coin.id) {
+      sendJson(res, 404, { error: `Coin ${id} not found` }, SOURCE);
       return;
     }
-    sendJson(res, 200, { ...result.data, source: result.source }, result.source);
+    sendJson(res, 200, { ...coin, source: SOURCE }, SOURCE);
     return;
   }
 
@@ -289,8 +269,8 @@ function createAppServer() {
 
 if (require.main === module) {
   createAppServer().listen(PORT, () => {
-    console.log(`[backend] CoinGecko mini API listening on http://localhost:${PORT}/api (mode: ${MODE})`);
+    console.log(`[backend] CoinGecko mini API listening on http://localhost:${PORT}/api (source: ${SOURCE})`);
   });
 }
 
-module.exports = { createAppServer, normalize, stripHtml, round };
+module.exports = { createAppServer, normalize, stripHtml };

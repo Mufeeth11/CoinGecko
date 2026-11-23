@@ -2,6 +2,7 @@ import 'package:coingecko_mini/core/di/app_dependencies.dart';
 import 'package:coingecko_mini/core/state/view_status.dart';
 import 'package:coingecko_mini/core/theme/app_theme.dart';
 import 'package:coingecko_mini/core/utils/formatters.dart';
+import 'package:coingecko_mini/core/widgets/app_widgets.dart';
 import 'package:coingecko_mini/core/widgets/state_widgets.dart';
 import 'package:coingecko_mini/features/crypto/domain/entities/coin.dart';
 import 'package:coingecko_mini/features/crypto/presentation/cubit/stats_cubit.dart';
@@ -40,33 +41,11 @@ class StatsScreen extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Market pulse',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontSize: 28),
-                            ),
-                            const SizedBox(height: 5),
-                            const Text(
-                              'Global crypto market statistics',
-                              style: TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 12.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SourceBadge(source: state.source),
-                    ],
-                  ),
+                child: PageHeader(
+                  eyebrow: 'CoinScope / Global tape',
+                  title: 'Market pulse',
+                  subtitle: 'Aggregated health of the crypto market.',
+                  trailing: SourceBadge(source: state.source),
                 ),
               ),
               if (state.status.isLoading && state.stats == null)
@@ -96,7 +75,7 @@ class StatsScreen extends StatelessWidget {
                 SliverToBoxAdapter(child: _metrics(state)),
                 SliverToBoxAdapter(child: _dominance(state)),
                 SliverToBoxAdapter(child: _movers(context, state)),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                const SliverToBoxAdapter(child: SizedBox(height: 28)),
               ],
             ],
           ),
@@ -107,90 +86,124 @@ class StatsScreen extends StatelessWidget {
 
   Widget _metrics(StatsState state) {
     final stats = state.stats!;
-    final items = <MapEntry<String, String>>[
-      MapEntry(
-        'Total market cap',
-        Formatters.compactCurrency(stats.totalMarketCap),
-      ),
-      MapEntry(
-        '24h trading volume',
-        Formatters.compactCurrency(stats.totalVolume),
-      ),
-      MapEntry(
-        'Market cap (24h)',
-        Formatters.signedPercent(stats.marketCapChange24h),
-      ),
-      MapEntry(
-        'Active cryptocurrencies',
-        Formatters.compact(stats.activeCryptocurrencies),
-      ),
-      MapEntry('Tracked markets', Formatters.compact(stats.markets)),
-      MapEntry('Last updated', Formatters.dateTime(stats.updatedAt)),
-    ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 1.35,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          final isChange = index == 2;
-          final valueColor = isChange
-              ? (stats.marketCapChange24h >= 0
-                    ? AppColors.positive
-                    : AppColors.negative)
-              : AppColors.text;
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    [
-                      Icons.account_balance_wallet_outlined,
-                      Icons.swap_horiz_rounded,
-                      Icons.trending_up_rounded,
-                      Icons.layers_outlined,
-                      Icons.public_rounded,
-                      Icons.schedule_rounded,
-                    ][index],
-                    size: 18,
-                    color: isChange ? valueColor : AppColors.primary,
+      child: Column(
+        children: [
+          Panel(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const SectionLabel(label: 'Total market cap'),
+                    const Spacer(),
+                    ChangeChip(value: stats.marketCapChange24h),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  Formatters.compactCurrency(stats.totalMarketCap),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.mono(
+                    size: 30,
+                    weight: FontWeight.w700,
+                    color: AppColors.text,
+                    letterSpacing: -0.6,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    item.key,
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      color: AppColors.faint,
+                ),
+                const SizedBox(height: 14),
+                const Divider(),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _inline(
+                        '24H VOLUME',
+                        Formatters.compactCurrency(stats.totalVolume),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: valueColor,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _inline(
+                        'LAST UPDATED',
+                        Formatters.dateTime(stats.updatedAt),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _metricTile(
+                  Icons.layers_outlined,
+                  'ACTIVE ASSETS',
+                  Formatters.compact(stats.activeCryptocurrencies),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _metricTile(
+                  Icons.public_rounded,
+                  'TRACKED MARKETS',
+                  Formatters.compact(stats.markets),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _inline(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppText.eyebrow(AppColors.faint)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.mono(
+            size: 11.5,
+            weight: FontWeight.w600,
+            color: AppColors.text,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _metricTile(IconData icon, String label, String value) {
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: AppColors.primary),
+          const SizedBox(height: 10),
+          Text(label, style: AppText.eyebrow(AppColors.faint)),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.mono(
+              size: 18,
+              weight: FontWeight.w700,
+              color: AppColors.text,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -199,67 +212,62 @@ class StatsScreen extends StatelessWidget {
     final stats = state.stats!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Market dominance',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Share of the total crypto market cap',
-                style: TextStyle(fontSize: 11, color: AppColors.faint),
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  height: 12,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: stats.btcDominance.round().clamp(1, 100),
-                        child: Container(color: AppColors.warning),
-                      ),
-                      Expanded(
-                        flex: stats.ethDominance.round().clamp(1, 100),
-                        child: Container(color: AppColors.secondary),
-                      ),
-                      Expanded(
-                        flex: stats.otherDominance.round().clamp(1, 100),
-                        child: Container(color: AppColors.surfaceSoft),
-                      ),
-                    ],
-                  ),
+      child: Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionLabel(label: 'Market dominance'),
+            const SizedBox(height: 5),
+            Text(
+              'Share of total crypto market cap',
+              style: AppText.sans(size: 10.5, color: AppColors.faint),
+            ),
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: SizedBox(
+                height: 8,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: stats.btcDominance.round().clamp(1, 100),
+                      child: Container(color: AppColors.warning),
+                    ),
+                    Expanded(
+                      flex: stats.ethDominance.round().clamp(1, 100),
+                      child: Container(color: AppColors.secondary),
+                    ),
+                    Expanded(
+                      flex: stats.otherDominance.round().clamp(1, 100),
+                      child: Container(color: AppColors.faint),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _legend(
-                    AppColors.warning,
-                    'BTC',
-                    Formatters.percent(stats.btcDominance),
-                  ),
-                  _legend(
-                    AppColors.secondary,
-                    'ETH',
-                    Formatters.percent(stats.ethDominance),
-                  ),
-                  _legend(
-                    AppColors.surfaceSoft,
-                    'Others',
-                    Formatters.percent(stats.otherDominance),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 14,
+              runSpacing: 8,
+              children: [
+                _legend(
+                  AppColors.warning,
+                  'BTC',
+                  Formatters.percent(stats.btcDominance),
+                ),
+                _legend(
+                  AppColors.secondary,
+                  'ETH',
+                  Formatters.percent(stats.ethDominance),
+                ),
+                _legend(
+                  AppColors.faint,
+                  'OTHERS',
+                  Formatters.percent(stats.otherDominance),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -267,31 +275,34 @@ class StatsScreen extends StatelessWidget {
 
   Widget _legend(Color color, String label, String value) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: 6,
+          height: 6,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(1),
           ),
         ),
         const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(fontSize: 10, color: AppColors.faint),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+        Text(
+          label,
+          style: AppText.mono(
+            size: 9,
+            weight: FontWeight.w600,
+            color: AppColors.faint,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: AppText.mono(
+            size: 10,
+            weight: FontWeight.w700,
+            color: AppColors.text,
+          ),
         ),
       ],
     );
@@ -304,15 +315,13 @@ class StatsScreen extends StatelessWidget {
         children: [
           _moverCard(
             'Top gainers',
-            Icons.trending_up_rounded,
             AppColors.positive,
             state.gainers,
             context,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _moverCard(
             'Top losers',
-            Icons.trending_down_rounded,
             AppColors.negative,
             state.losers,
             context,
@@ -324,78 +333,90 @@ class StatsScreen extends StatelessWidget {
 
   Widget _moverCard(
     String title,
-    IconData icon,
     Color color,
     List<Coin> coins,
     BuildContext context,
   ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final top = coins.take(4).toList();
+    return Panel(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 13, 14, 11),
+            child: Row(
               children: [
-                Icon(icon, size: 17, color: color),
-                const SizedBox(width: 8),
+                SectionLabel(label: title, accent: color),
+                const Spacer(),
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  '${top.length}',
+                  style: AppText.mono(size: 9, color: AppColors.faint),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            if (coins.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+          ),
+          const Divider(height: 1),
+          if (top.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
                 child: Text(
                   'No movers available.',
-                  style: TextStyle(fontSize: 11, color: AppColors.faint),
+                  style: AppText.sans(size: 11, color: AppColors.faint),
                 ),
-              )
-            else
-              for (final coin in coins.take(4))
-                InkWell(
-                  onTap: () => _openCoin(context, coin),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        CoinAvatar(
-                          imageUrl: coin.image,
-                          symbol: coin.symbol,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            coin.symbol,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
+              ),
+            )
+          else
+            for (var index = 0; index < top.length; index += 1) ...[
+              if (index > 0)
+                const Divider(height: 1, indent: 14, endIndent: 14),
+              InkWell(
+                onTap: () => _openCoin(context, top[index]),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  child: Row(
+                    children: [
+                      CoinAvatar(
+                        imageUrl: top[index].image,
+                        symbol: top[index].symbol,
+                        size: 26,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          top[index].symbol.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.mono(
+                            size: 10.5,
+                            weight: FontWeight.w700,
+                            color: AppColors.text,
+                            letterSpacing: 0.4,
                           ),
                         ),
-                        Text(
-                          Formatters.currency(coin.currentPrice),
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: AppColors.muted,
-                          ),
+                      ),
+                      Text(
+                        Formatters.currency(top[index].currentPrice),
+                        style: AppText.mono(
+                          size: 10.5,
+                          color: AppColors.muted,
                         ),
-                        const SizedBox(width: 8),
-                        ChangeChip(value: coin.priceChange24h, compact: true),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 10),
+                      ChangeChip(
+                        value: top[index].priceChange24h,
+                        compact: true,
+                      ),
+                    ],
                   ),
                 ),
-          ],
-        ),
+              ),
+            ],
+        ],
       ),
     );
   }

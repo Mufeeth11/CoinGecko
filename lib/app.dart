@@ -40,8 +40,6 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    // Kick off all three data flows once; each screen keeps its own state in
-    // the IndexedStack, so revisiting a tab never loses filters or refreshes.
     context.read<WatchlistCubit>().load();
     context.read<MarketCubit>().load();
     context.read<StatsCubit>().load();
@@ -63,27 +61,32 @@ class _AppShellState extends State<AppShell> {
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.show_chart_rounded),
-            selectedIcon: Icon(Icons.show_chart_rounded),
-            label: 'Markets',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.donut_large_outlined),
-            selectedIcon: Icon(Icons.donut_large_rounded),
-            label: 'Statistics',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.star_border_rounded),
-            selectedIcon: Icon(Icons.star_rounded),
-            label: 'Watchlist',
-          ),
-        ],
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) =>
+              setState(() => _selectedIndex = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.candlestick_chart_outlined),
+              selectedIcon: Icon(Icons.candlestick_chart_rounded),
+              label: 'MARKETS',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.pie_chart_outline_rounded),
+              selectedIcon: Icon(Icons.pie_chart_rounded),
+              label: 'STATISTICS',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.star_border_rounded),
+              selectedIcon: Icon(Icons.star_rounded),
+              label: 'WATCHLIST',
+            ),
+          ],
+        ),
       ),
     );
   }

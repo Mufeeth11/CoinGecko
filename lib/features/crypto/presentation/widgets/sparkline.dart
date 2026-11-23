@@ -72,14 +72,14 @@ class _SparklinePainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0)],
+          colors: [color.withValues(alpha: 0.15), color.withValues(alpha: 0)],
         ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
     );
     canvas.drawPath(
       path,
       Paint()
         ..color = color
-        ..strokeWidth = 1.8
+        ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round,
     );

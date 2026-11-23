@@ -80,7 +80,7 @@ class FakeCryptoRepository implements CryptoRepository {
   Future<Either<Failure, MarketSnapshot>> getCoins() async {
     if (failure != null) return Left(failure!);
     return Right(
-      MarketSnapshot(coins: coins, source: 'mock', updatedAt: DateTime(2026)),
+      MarketSnapshot(coins: coins, source: 'live', updatedAt: DateTime(2026)),
     );
   }
 

@@ -1,11 +1,7 @@
 'use strict';
 
-// End-to-end HTTP smoke test: starts the real server and exercises the same
-// contract the Flutter client consumes. Forces mock mode so CI is offline-safe.
-process.env.DATA_MODE = 'mock';
-
 const assert = require('node:assert/strict');
-const { createAppServer } = require('../server');
+const { createUpstreamServer } = require('../test/fixtures/upstream');
 
 let passed = 0;
 
@@ -22,12 +18,20 @@ async function request(server, path, options) {
   try {
     body = text ? JSON.parse(text) : null;
   } catch {
-    // Keep the raw text; assertions will produce a useful message.
+    body = text;
   }
   return { response, body };
 }
 
 async function main() {
+  const upstream = createUpstreamServer();
+  await new Promise((resolve, reject) => {
+    upstream.once('error', reject);
+    upstream.listen(0, '127.0.0.1', resolve);
+  });
+  process.env.COINGECKO_BASE_URL = `http://127.0.0.1:${upstream.address().port}`;
+  const { createAppServer } = require('../server');
+
   const server = createAppServer();
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -38,26 +42,26 @@ async function main() {
     let result = await request(server, '/api/health');
     assert.equal(result.response.status, 200);
     assert.equal(result.body.status, 'ok');
-    assert.equal(result.body.mode, 'mock');
-    ok('health reports status and active mode');
+    assert.equal(result.body.mode, 'live');
+    ok('health reports status and live source');
 
     result = await request(server, '/api/categories');
     assert.equal(result.response.status, 200);
     assert.ok(result.body.categories.includes('Layer 1'));
     assert.ok(result.body.categories.includes('Stablecoin'));
-    assert.equal(result.response.headers.get('x-data-source'), 'mock');
-    ok('categories are returned from the mock source');
+    assert.equal(result.response.headers.get('x-data-source'), 'live');
+    ok('categories come from the live upstream feed');
 
     result = await request(server, '/api/coins');
     assert.equal(result.response.status, 200);
     assert.ok(result.body.coins.length > 5);
-    assert.equal(result.body.source, 'mock');
+    assert.equal(result.body.source, 'live');
     assert.equal(result.response.headers.get('access-control-allow-origin'), '*');
     const sample = result.body.coins[0];
     for (const field of ['id', 'symbol', 'name', 'currentPrice', 'marketCap', 'totalVolume']) {
       assert.ok(sample[field] !== undefined, `missing normalized field: ${field}`);
     }
-    ok('markets return normalized coin fields and CORS headers');
+    ok('markets return normalized live coin fields and CORS headers');
 
     result = await request(server, '/api/coins?search=btc');
     assert.equal(result.response.status, 200);
@@ -76,6 +80,7 @@ async function main() {
     result = await request(server, '/api/coins/bitcoin');
     assert.equal(result.response.status, 200);
     assert.equal(result.body.id, 'bitcoin');
+    assert.equal(result.body.source, 'live');
     assert.ok(result.body.currentPrice > 0);
     assert.ok(result.body.description.length > 0);
     assert.ok(result.body.circulatingSupply > 0);
@@ -113,6 +118,7 @@ async function main() {
     console.log(`\nBackend smoke checks passed: ${passed}`);
   } finally {
     await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => upstream.close(resolve));
   }
 }
 

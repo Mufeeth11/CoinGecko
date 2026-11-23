@@ -22,33 +22,41 @@ class CoinTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        borderRadius: BorderRadius.circular(3),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(4, 12, 2, 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: AppColors.border.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final showSparkline =
-                  constraints.maxWidth >= 350 && coin.sparkline.length > 1;
+                  constraints.maxWidth >= 380 && coin.sparkline.length > 1;
               return Row(
                 children: [
                   SizedBox(
-                    width: 23,
+                    width: 26,
                     child: Text(
                       '${coin.marketCapRank}',
-                      style: const TextStyle(
+                      style: AppText.mono(
+                        size: 10,
+                        weight: FontWeight.w500,
                         color: AppColors.faint,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   CoinAvatar(
                     imageUrl: coin.image,
                     symbol: coin.symbol,
-                    size: 36,
+                    size: 34,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -59,20 +67,24 @@ class CoinTile extends StatelessWidget {
                           coin.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                          style: AppText.sans(
+                            size: 13,
+                            weight: FontWeight.w600,
                             color: AppColors.text,
+                            letterSpacing: -0.1,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 4),
                         Text(
-                          '${coin.symbol} · ${coin.category}',
+                          coin.category.isEmpty
+                              ? coin.symbol.toUpperCase()
+                              : '${coin.symbol.toUpperCase()} · ${coin.category}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 10.5,
+                          style: AppText.mono(
+                            size: 9,
                             color: AppColors.faint,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ],
@@ -83,19 +95,19 @@ class CoinTile extends StatelessWidget {
                     Sparkline(
                       points: coin.sparkline,
                       positive: coin.isPositive,
-                      width: 52,
-                      height: 28,
+                      width: 48,
+                      height: 24,
                     ),
                   ],
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         Formatters.currency(coin.currentPrice),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                        style: AppText.mono(
+                          size: 12,
+                          weight: FontWeight.w600,
                           color: AppColors.text,
                         ),
                       ),
@@ -105,7 +117,7 @@ class CoinTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 2),
                   SizedBox(
-                    width: 32,
+                    width: 30,
                     child: IconButton(
                       onPressed: onToggleWatch,
                       padding: EdgeInsets.zero,
@@ -114,8 +126,10 @@ class CoinTile extends StatelessWidget {
                         isWatched
                             ? Icons.star_rounded
                             : Icons.star_border_rounded,
-                        color: isWatched ? AppColors.warning : AppColors.faint,
-                        size: 20,
+                        color: isWatched
+                            ? AppColors.warning
+                            : AppColors.faint,
+                        size: 18,
                       ),
                       tooltip: isWatched
                           ? 'Remove from watchlist'

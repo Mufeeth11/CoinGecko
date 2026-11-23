@@ -9,7 +9,7 @@ class StatsState extends Equatable {
     this.stats,
     this.gainers = const <Coin>[],
     this.losers = const <Coin>[],
-    this.source = 'mock',
+    this.source = '',
     this.message,
     this.isRefreshing = false,
   });

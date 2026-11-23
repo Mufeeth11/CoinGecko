@@ -18,41 +18,38 @@ class CoinAvatar extends StatelessWidget {
     final color = _colorFor(symbol);
     final fallback = Container(
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color, color.withValues(alpha: 0.45)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      color: color,
       child: Text(
         symbol.isEmpty ? '?' : symbol.substring(0, 1).toUpperCase(),
-        style: TextStyle(
+        style: AppText.sans(
+          size: size * 0.4,
+          weight: FontWeight.w800,
           color: AppColors.background,
-          fontWeight: FontWeight.w800,
-          fontSize: size * 0.42,
         ),
       ),
     );
 
-    return ClipOval(
-      child: Container(
-        width: size,
-        height: size,
-        color: color.withValues(alpha: 0.15),
-        child: imageUrl.trim().isEmpty
-            ? fallback
-            : Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.low,
-                errorBuilder: (_, _, _) => fallback,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return fallback;
-                },
-              ),
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: 0.16),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
       ),
+      child: imageUrl.trim().isEmpty
+          ? fallback
+          : Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.low,
+              errorBuilder: (_, _, _) => fallback,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return fallback;
+              },
+            ),
     );
   }
 
@@ -61,10 +58,10 @@ class CoinAvatar extends StatelessWidget {
       AppColors.primary,
       AppColors.secondary,
       AppColors.warning,
-      Color(0xFF38BDF8),
-      Color(0xFFF472B6),
-      Color(0xFFFBBF24),
-      Color(0xFF34D399),
+      const Color(0xFF6FB7E8),
+      const Color(0xFFE58FB5),
+      const Color(0xFFE0B25C),
+      const Color(0xFF63C7A8),
     ];
     var hash = 0;
     for (final codeUnit in value.toUpperCase().codeUnits) {

@@ -2,7 +2,7 @@
   "name": "coingecko-mini-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Tiny Node.js proxy/normalizer for CoinGecko with a deterministic mock fallback.",
+  "description": "Tiny Node.js proxy/normalizer for live CoinGecko data.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

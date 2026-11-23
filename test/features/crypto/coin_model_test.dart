@@ -35,7 +35,7 @@ void main() {
       final chart = MarketChartModel.fromJson({
         'id': 'bitcoin',
         'days': '7',
-        'source': 'mock',
+        'source': 'live',
         'prices': [
           [1700000000000, 100.5],
           [1700003600000, 102.25],
@@ -59,7 +59,7 @@ void main() {
         'activeCryptocurrencies': 14000,
         'markets': 900,
         'updatedAt': '2026-11-23T10:00:00.000Z',
-        'source': 'mock',
+        'source': 'live',
       });
 
       expect(stats.otherDominance, 27);

@@ -25,7 +25,7 @@ class GlobalStatsModel extends GlobalStats {
       markets: json.intAt('markets'),
       updatedAt:
           DateTime.tryParse(json.stringAt('updatedAt')) ?? DateTime.now(),
-      source: json.stringAt('source', 'mock'),
+      source: json.stringAt('source'),
     );
   }
 }

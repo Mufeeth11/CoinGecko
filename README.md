@@ -1,8 +1,8 @@
 # CoinScope — Flutter Crypto Research App
 
-A mini CoinGecko-style research app built with **Flutter** and **Clean Architecture**, backed by a small **Node.js** API that normalizes CoinGecko data and falls back to deterministic mock data when the upstream API is unavailable.
+A mini CoinGecko-style research app built with **Flutter** and **Clean Architecture**, backed by a small **Node.js** API that normalizes live CoinGecko data.
 
-The app is fully usable offline in `mock` mode: real screens, real API calls, real state management, real persistence — only the data source is local to the backend.
+The app only displays live upstream data. When the upstream API is unavailable, the client renders its loading, error or empty state instead of substituting sample values.
 
 ## Features
 
@@ -18,7 +18,7 @@ The app is fully usable offline in `mock` mode: real screens, real API calls, re
   - Watchlist star and manual refresh
 - **Statistics**
   - Global market cap, 24h volume, 24h market movement, BTC/ETH dominance and active markets
-  - Source badge showing whether data came from `live` or `mock`
+  - Live source badge, shown only when upstream data is available
 - **Watchlist**
   - Persistent favorites via `shared_preferences`
   - Empty state with a shortcut back to Markets
@@ -38,8 +38,8 @@ lib/
       domain/                   # Watchlist repository contract + use cases
       presentation/             # WatchlistCubit
 backend/
-  server.js                     # HTTP API, normalization, cache, proxy/fallback logic
-  mock-data.js                  # Deterministic demo dataset and chart generator
+  server.js                     # HTTP API, live proxy, normalization and cache
+  test/fixtures/upstream.js     # Deterministic upstream stub used only by tests
   scripts/smoke.js              # End-to-end API smoke check
 test/                           # Dart unit, cubit and widget tests
 ```
@@ -66,32 +66,18 @@ cd backend
 npm start
 ```
 
-`npm start` uses `auto` mode: it tries CoinGecko first, so the app shows **real live data** whenever the upstream API is reachable. If CoinGecko is offline or rate-limited, it falls back to mock data automatically.
+`npm start` serves **live CoinGecko data only**. If CoinGecko is offline or rate-limited, the request fails with `502` and the Flutter app shows its error state — there is no fallback dataset.
 
-Guaranteed live mode — show an error instead of falling back:
-
-```powershell
-$env:DATA_MODE='live'; npm start
-```
-
-Deterministic offline demo:
-
-```powershell
-$env:DATA_MODE='mock'; npm start
-```
-
-The app header shows `LIVE API` or `MOCK DATA`, and every response includes an `X-Data-Source` header.
+The app header shows `LIVE API` only when a live response was received, and every response includes `X-Data-Source: live`.
 
 ### Configuration
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3000` | HTTP port |
-| `DATA_MODE` | `auto` | `auto`, `mock` or `live` |
 | `COINGECKO_BASE_URL` | public v3 API | Override upstream |
 | `COINGECKO_API_KEY` | empty | Optional demo API key |
 | `CACHE_TTL_MS` | `60000` | Live response cache |
-| `FALLBACK_TTL_MS` | `60000` | Mock response cache |
 | `UPSTREAM_TIMEOUT_MS` | `4000` | Upstream request timeout |
 
 ### Endpoints
@@ -105,7 +91,7 @@ The app header shows `LIVE API` or `MOCK DATA`, and every response includes an `
 | `GET` | `/api/coins/:id/market_chart?days=7` | Price/market-cap/volume series |
 | `GET` | `/api/global` | Global market statistics |
 
-All responses are JSON, CORS-enabled and include an `X-Data-Source: live|mock` header.
+All responses are JSON, CORS-enabled and include an `X-Data-Source: live` header.
 
 See [backend/README.md](backend/README.md) for API details.
 
@@ -145,12 +131,12 @@ npm run smoke --prefix backend
 flutter build web --release --dart-define=API_BASE_URL=http://localhost:3000/api
 ```
 
-`npm run smoke` starts the real HTTP server in-process and exercises health, categories, markets, search/filter, detail, chart, global, 404 and method-not-allowed paths.
+`npm run smoke` starts the real HTTP server in-process against a deterministic local upstream stub and exercises health, categories, markets, search/filter, detail, chart, global, 404 and method-not-allowed paths.
 
 CI runs the same checks on every push via `.github/workflows/ci.yml`.
 
 ## Notes
 
 - No API key is needed to start with the public CoinGecko endpoint; set `COINGECKO_API_KEY` only for higher upstream limits.
-- Mock data is deterministic, so charts and values are stable across runs.
-- The client never fakes network responses: all screens consume the same backend contract in every mode.
+- All values shown in the app come from the live upstream response; the client never substitutes local data.
+- When live data is unavailable, loading, error and empty views are rendered instead of stale or sample values.

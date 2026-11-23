@@ -1,10 +1,25 @@
 'use strict';
 
-process.env.DATA_MODE = 'mock';
-
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createAppServer, stripHtml } = require('../server');
+const { createUpstreamServer } = require('./fixtures/upstream');
+
+let upstreamServer;
+let createAppServer;
+let stripHtml;
+
+test.before(async () => {
+  upstreamServer = createUpstreamServer();
+  await new Promise((resolve) => upstreamServer.listen(0, '127.0.0.1', resolve));
+  process.env.COINGECKO_BASE_URL = `http://127.0.0.1:${upstreamServer.address().port}`;
+  ({ createAppServer, stripHtml } = require('../server'));
+});
+
+test.after(async () => {
+  if (upstreamServer) {
+    await new Promise((resolve) => upstreamServer.close(resolve));
+  }
+});
 
 async function withServer(callback) {
   const server = createAppServer();
@@ -23,7 +38,18 @@ test('GET /api/health reports service status', async () => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.status, 'ok');
-    assert.equal(body.mode, 'mock');
+    assert.equal(body.mode, 'live');
+    assert.equal(response.headers.get('x-data-source'), 'live');
+  });
+});
+
+test('GET /api/categories returns live upstream categories', async () => {
+  await withServer(async (base) => {
+    const response = await fetch(`${base}/api/categories`);
+    const body = await response.json();
+    assert.ok(body.categories.includes('Layer 1'));
+    assert.ok(body.categories.includes('Stablecoin'));
+    assert.equal(response.headers.get('x-data-source'), 'live');
   });
 });
 
@@ -31,6 +57,7 @@ test('GET /api/coins returns normalized market data', async () => {
   await withServer(async (base) => {
     const response = await fetch(`${base}/api/coins`);
     const body = await response.json();
+    assert.equal(body.source, 'live');
     assert.ok(body.coins.length >= 10);
     const bitcoin = body.coins.find((coin) => coin.id === 'bitcoin');
     assert.ok(bitcoin.currentPrice > 0);
@@ -57,6 +84,7 @@ test('GET /api/coins/:id returns detail fields', async () => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.id, 'solana');
+    assert.equal(body.source, 'live');
     assert.ok(body.description.length > 10);
     assert.ok(body.high24h > body.low24h);
     assert.ok(body.ath > body.currentPrice);

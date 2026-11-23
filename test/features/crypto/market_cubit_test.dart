@@ -66,7 +66,7 @@ void main() {
       await cubit.load();
       expect(cubit.state.status, ViewStatus.success);
       expect(cubit.state.visibleCoins, hasLength(4));
-      expect(cubit.state.source, 'mock');
+      expect(cubit.state.source, 'live');
     });
 
     test('filters by search query, quick filter and category', () async {
