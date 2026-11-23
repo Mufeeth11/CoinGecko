@@ -12,13 +12,21 @@ Dependency-free Node.js HTTP API used by the Flutter app. It proxies and normali
 npm start
 ```
 
-PowerShell demo mode:
+`npm start` uses `auto` mode: CoinGecko is tried first, so the app receives live data whenever the upstream API is reachable. Mock data is only a fallback for offline/rate-limited cases.
+
+Guaranteed live mode on PowerShell:
+
+```powershell
+$env:DATA_MODE='live'; npm start
+```
+
+Deterministic offline demo:
 
 ```powershell
 $env:DATA_MODE='mock'; npm start
 ```
 
-The server logs its listening URL and active mode.
+The server logs its listening URL and active mode, and each response includes `X-Data-Source: live|mock`.
 
 ## Modes
 

@@ -63,16 +63,24 @@ Node.js 18+, no third-party packages required.
 
 ```bash
 cd backend
-DATA_MODE=mock npm start
+npm start
 ```
 
-On PowerShell:
+`npm start` uses `auto` mode: it tries CoinGecko first, so the app shows **real live data** whenever the upstream API is reachable. If CoinGecko is offline or rate-limited, it falls back to mock data automatically.
+
+Guaranteed live mode — show an error instead of falling back:
+
+```powershell
+$env:DATA_MODE='live'; npm start
+```
+
+Deterministic offline demo:
 
 ```powershell
 $env:DATA_MODE='mock'; npm start
 ```
 
-Default mode is `auto`: try CoinGecko first, then fall back to mock data on any failure. Use `DATA_MODE=live` to require upstream success, or `DATA_MODE=mock` for a deterministic demo.
+The app header shows `LIVE API` or `MOCK DATA`, and every response includes an `X-Data-Source` header.
 
 ### Configuration
 
@@ -143,6 +151,6 @@ CI runs the same checks on every push via `.github/workflows/ci.yml`.
 
 ## Notes
 
-- No API key is needed for the default demo; set `COINGECKO_API_KEY` only for higher upstream limits.
+- No API key is needed to start with the public CoinGecko endpoint; set `COINGECKO_API_KEY` only for higher upstream limits.
 - Mock data is deterministic, so charts and values are stable across runs.
 - The client never fakes network responses: all screens consume the same backend contract in every mode.
