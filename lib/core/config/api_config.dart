@@ -10,19 +10,25 @@ class ApiConfig {
   static const String urlOverride = String.fromEnvironment('API_BASE_URL');
   static const Duration requestTimeout = Duration(seconds: 10);
 
-  static String get baseUrl {
-    if (urlOverride.trim().isNotEmpty) return urlOverride.trim();
-    if (kIsWeb) return 'http://localhost:3000/api';
+  static List<String> get candidateBaseUrls {
+    if (urlOverride.trim().isNotEmpty) return [urlOverride.trim()];
+    if (kIsWeb) return const ['http://localhost:3000/api'];
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        // Special alias for the host machine from the Android emulator.
-        return 'http://10.0.2.2:3000/api';
+        // Try localhost (works on physical devices with adb reverse) first,
+        // then fall back to 10.0.2.2 for Android emulators.
+        return const [
+          'http://localhost:3000/api',
+          'http://10.0.2.2:3000/api',
+        ];
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
       case TargetPlatform.linux:
       case TargetPlatform.fuchsia:
-        return 'http://localhost:3000/api';
+        return const ['http://localhost:3000/api'];
     }
   }
+
+  static String get baseUrl => candidateBaseUrls.first;
 }

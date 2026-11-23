@@ -34,24 +34,43 @@ class ApiClient {
     return List<dynamic>.from(decoded);
   }
 
+  String? _workingBaseUrl;
+
   Future<dynamic> _get(
     String path, {
     Map<String, String>? queryParameters,
   }) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}$path').replace(
-      queryParameters: queryParameters == null || queryParameters.isEmpty
-          ? null
-          : queryParameters,
-    );
+    final candidateBases = _workingBaseUrl != null
+        ? [_workingBaseUrl!]
+        : ApiConfig.candidateBaseUrls;
 
-    late final http.Response response;
-    try {
-      response = await _client.get(uri).timeout(ApiConfig.requestTimeout);
-    } on TimeoutException {
-      throw const ConnectionException(
-        'The server took too long to respond. Please try again.',
+    http.Response? response;
+    Exception? lastException;
+
+    for (final base in candidateBases) {
+      final uri = Uri.parse('$base$path').replace(
+        queryParameters: queryParameters == null || queryParameters.isEmpty
+            ? null
+            : queryParameters,
       );
-    } on http.ClientException {
+
+      try {
+        response = await _client.get(uri).timeout(ApiConfig.requestTimeout);
+        _workingBaseUrl = base;
+        break;
+      } on TimeoutException catch (e) {
+        lastException = e;
+      } on http.ClientException catch (e) {
+        lastException = e;
+      }
+    }
+
+    if (response == null) {
+      if (lastException is TimeoutException) {
+        throw const ConnectionException(
+          'The server took too long to respond. Please try again.',
+        );
+      }
       throw const ConnectionException(
         'Could not reach the market server. Check your connection and start the backend.',
       );
