@@ -8,18 +8,19 @@ abstract interface class WatchlistLocalDataSource {
 }
 
 class WatchlistLocalDataSourceImpl implements WatchlistLocalDataSource {
-  const WatchlistLocalDataSourceImpl(this._preferences);
+  WatchlistLocalDataSourceImpl({
+    Future<SharedPreferences> Function()? preferencesLoader,
+  }) : _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance;
 
   static const storageKey = 'crypto_watchlist_ids';
 
-  final SharedPreferences _preferences;
+  final Future<SharedPreferences> Function() _preferencesLoader;
 
   @override
-  Future<List<String>> readIds() {
+  Future<List<String>> readIds() async {
     try {
-      return Future.value(
-        _preferences.getStringList(storageKey) ?? const <String>[],
-      );
+      final preferences = await _preferencesLoader();
+      return preferences.getStringList(storageKey) ?? const <String>[];
     } catch (error) {
       throw CacheException('Could not read the watchlist: $error');
     }
@@ -28,7 +29,8 @@ class WatchlistLocalDataSourceImpl implements WatchlistLocalDataSource {
   @override
   Future<List<String>> writeIds(List<String> ids) async {
     try {
-      final saved = await _preferences.setStringList(storageKey, ids);
+      final preferences = await _preferencesLoader();
+      final saved = await preferences.setStringList(storageKey, ids);
       if (!saved) throw const CacheException('Could not save the watchlist.');
       return ids;
     } on CacheException {
